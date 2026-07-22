@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta
+    name="description"
+    content="StockFlow is a minimalist inventory management system built with JavaScript, Node.js, Express and SQLite."
+  >
+  <title>StockFlow | Inventory Management</title>
+  <link rel="stylesheet" href="/styles.css">
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <a class="brand" href="#dashboard" aria-label="StockFlow home">
+        <span class="brand-mark">S</span>
+        <span>
+          <strong>StockFlow</strong>
+          <small>Inventory management</small>
+        </span>
+      </a>
+
+      <nav class="navigation" aria-label="Main navigation">
+        <button class="nav-item active" type="button" data-view="dashboard">
+          Overview
+        </button>
+        <button class="nav-item" type="button" data-view="inventory">
+          Inventory
+        </button>
+        <button class="nav-item" type="button" data-view="movements">
+          Movements
+        </button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <span>Portfolio project</span>
+        <strong>Grégori Scherer</strong>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <header class="page-header">
+        <div>
+          <p class="section-label" id="pageLabel">OPERATIONS</p>
+          <h1 id="pageTitle">Inventory overview</h1>
+          <p class="page-description" id="pageDescription">
+            Monitor stock health and recent activity.
+          </p>
+        </div>
+
+        <div class="header-actions">
+          <button class="button secondary hidden" id="exportButton" type="button">
+            Export CSV
+          </button>
+          <button class="button primary" id="addProductButton" type="button">
+            Add product
+          </button>
+        </div>
+      </header>
+
+      <section class="view active" id="dashboardView" data-view-panel="dashboard">
+        <div class="metrics-grid">
+          <article class="metric-card">
+            <span>Total products</span>
+            <strong id="totalProducts">0</strong>
+            <small>Registered SKUs</small>
+          </article>
+          <article class="metric-card">
+            <span>Units in stock</span>
+            <strong id="totalUnits">0</strong>
+            <small>Available inventory</small>
+          </article>
+          <article class="metric-card">
+            <span>Inventory value</span>
+            <strong id="stockValue">R$ 0,00</strong>
+            <small>Estimated total value</small>
+          </article>
+          <article class="metric-card attention">
+            <span>Needs attention</span>
+            <strong id="needsAttention">0</strong>
+            <small>Low or out of stock</small>
+          </article>
+        </div>
+
+        <div class="dashboard-grid">
+          <article class="panel analytics-panel">
+            <div class="panel-heading">
+              <div>
+                <p class="section-label">INVENTORY HEALTH</p>
+                <h2>Stock status</h2>
+              </div>
+            </div>
+            <div class="health-summary" id="healthSummary"></div>
+          </article>
+
+          <article class="panel category-panel">
+            <div class="panel-heading">
+              <div>
+                <p class="section-label">DISTRIBUTION</p>
+                <h2>Value by category</h2>
+              </div>
+            </div>
+            <div class="category-list" id="categoryList"></div>
+          </article>
+
+          <article class="panel activity-panel">
+            <div class="panel-heading">
+              <div>
+                <p class="section-label">RECENT ACTIVITY</p>
+                <h2>Latest movements</h2>
+              </div>
+              <button class="text-button" type="button" data-go-to="movements">View all</button>
+            </div>
+            <div class="activity-list" id="recentActivityList"></div>
+          </article>
+
+          <article class="panel attention-panel">
+            <div class="panel-heading">
+              <div>
+                <p class="section-label">ACTION REQUIRED</p>
+                <h2>Products to review</h2>
+              </div>
+            </div>
+            <div class="attention-list" id="attentionList"></div>
+          </article>
+        </div>
+      </section>
+
+      <section class="view" id="inventoryView" data-view-panel="inventory">
+        <article class="panel inventory-panel">
+          <div class="inventory-toolbar">
+            <label class="search-field">
+              <span>Search</span>
+              <input id="productSearch" type="search" placeholder="Name, SKU, supplier or location">
+            </label>
+
+            <label class="compact-field">
+              <span>Category</span>
+              <select id="categoryFilter">
+                <option value="">All categories</option>
+              </select>
+            </label>
+
+            <label class="compact-field">
+              <span>Status</span>
+              <select id="statusFilter">
+                <option value="">All statuses</option>
+                <option value="healthy">Healthy</option>
+                <option value="low">Low stock</option>
+                <option value="out">Out of stock</option>
+              </select>
+            </label>
+
+            <label class="compact-field">
+              <span>Sort</span>
+              <select id="sortFilter">
+                <option value="name">Name</option>
+                <option value="newest">Newest</option>
+                <option value="stock_asc">Lowest stock</option>
+                <option value="stock_desc">Highest stock</option>
+                <option value="value_desc">Highest value</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="table-meta">
+            <span id="inventoryResultCount">0 products</span>
+            <button class="text-button" id="clearFiltersButton" type="button">Clear filters</button>
+          </div>
+
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Product</th>
+                  <th>Category</th>
+                  <th>Location</th>
+                  <th>Stock</th>
+                  <th>Unit price</th>
+                  <th>Total value</th>
+                  <th>Status</th>
+                  <th aria-label="Actions"></th>
+                </tr>
+              </thead>
+              <tbody id="productsTableBody"></tbody>
+            </table>
+          </div>
+
+          <div class="empty-state hidden" id="productsEmptyState">
+            <strong>No products found</strong>
+            <span>Adjust the filters or register a new product.</span>
+          </div>
+        </article>
+      </section>
+
+      <section class="view" id="movementsView" data-view-panel="movements">
+        <article class="panel movements-panel">
+          <div class="inventory-toolbar movements-toolbar">
+            <label class="search-field">
+              <span>Search</span>
+              <input id="movementSearch" type="search" placeholder="Product, SKU or note">
+            </label>
+
+            <label class="compact-field">
+              <span>Type</span>
+              <select id="movementTypeFilter">
+                <option value="">All movements</option>
+                <option value="IN">Stock entries</option>
+                <option value="OUT">Stock removals</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="table-meta">
+            <span id="movementResultCount">0 movements</span>
+          </div>
+
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Product</th>
+                  <th>Type</th>
+                  <th>Quantity</th>
+                  <th>Balance</th>
+                  <th>Note</th>
+                </tr>
+              </thead>
+              <tbody id="movementsTableBody"></tbody>
+            </table>
+          </div>
+
+          <div class="empty-state hidden" id="movementsEmptyState">
+            <strong>No movements found</strong>
+            <span>Stock activity will appear here.</span>
+          </div>
+        </article>
+      </section>
+    </main>
+  </div>
+
+  <dialog class="modal" id="productModal">
+    <form class="modal-card" id="productForm">
+      <div class="modal-header">
+        <div>
+          <p class="section-label">PRODUCT DATA</p>
+          <h2 id="productModalTitle">Add product</h2>
+        </div>
+        <button class="close-button" type="button" data-close="productModal" aria-label="Close">×</button>
+      </div>
+
+      <input id="productId" type="hidden">
+
+      <div class="form-grid">
+        <label class="field wide">
+          <span>Product name *</span>
+          <input id="productName" type="text" maxlength="80" required>
+        </label>
+
+        <label class="field">
+          <span>SKU *</span>
+          <input id="productSku" type="text" maxlength="30" required>
+        </label>
+
+        <label class="field">
+          <span>Category *</span>
+          <input id="productCategory" type="text" maxlength="50" list="categoryOptions" required>
+        </label>
+
+        <label class="field">
+          <span>Supplier</span>
+          <input id="productSupplier" type="text" maxlength="80" list="supplierOptions">
+        </label>
+
+        <label class="field">
+          <span>Storage location</span>
+          <input id="productLocation" type="text" maxlength="50" placeholder="Example: Shelf A-01">
+        </label>
+
+        <label class="field" id="initialQuantityField">
+          <span>Initial quantity *</span>
+          <input id="productInitialQuantity" type="number" min="0" step="1" value="0">
+        </label>
+
+        <label class="field">
+          <span>Minimum stock *</span>
+          <input id="productMinStock" type="number" min="0" step="1" value="0" required>
+        </label>
+
+        <label class="field wide">
+          <span>Unit price *</span>
+          <input id="productUnitPrice" type="number" min="0" step="0.01" value="0" required>
+        </label>
+
+        <label class="field wide">
+          <span>Description</span>
+          <textarea id="productDescription" maxlength="300" rows="3"></textarea>
+        </label>
+      </div>
+
+      <datalist id="categoryOptions"></datalist>
+      <datalist id="supplierOptions"></datalist>
+
+      <p class="form-error hidden" id="productFormError"></p>
+
+      <div class="modal-actions">
+        <button class="button secondary" type="button" data-close="productModal">Cancel</button>
+        <button class="button primary" type="submit">Save product</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog class="modal" id="movementModal">
+    <form class="modal-card compact" id="movementForm">
+      <div class="modal-header">
+        <div>
+          <p class="section-label">STOCK CONTROL</p>
+          <h2 id="movementModalTitle">Register movement</h2>
+        </div>
+        <button class="close-button" type="button" data-close="movementModal" aria-label="Close">×</button>
+      </div>
+
+      <input id="movementProductId" type="hidden">
+
+      <label class="field">
+        <span>Movement type *</span>
+        <select id="movementType" required>
+          <option value="IN">Stock entry</option>
+          <option value="OUT">Stock removal</option>
+        </select>
+      </label>
+
+      <label class="field">
+        <span>Quantity *</span>
+        <input id="movementQuantity" type="number" min="1" step="1" value="1" required>
+      </label>
+
+      <label class="field">
+        <span>Note</span>
+        <textarea id="movementNote" maxlength="160" rows="3" placeholder="Example: Supplier delivery or internal use"></textarea>
+      </label>
+
+      <p class="form-hint" id="movementStockHint"></p>
+      <p class="form-error hidden" id="movementFormError"></p>
+
+      <div class="modal-actions">
+        <button class="button secondary" type="button" data-close="movementModal">Cancel</button>
+        <button class="button primary" type="submit">Confirm movement</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div class="toast hidden" id="toast" role="status"></div>
+</body>
+</html>
