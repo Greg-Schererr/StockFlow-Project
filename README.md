@@ -97,7 +97,7 @@ The database and demonstration data are created automatically on the first run.
 
 **Grégori Scherer dos Santos**
 
-- GitHub: [Greg-Scherer](https://github.com/Greg-Scherer)
+- GitHub: [Greg-Scherer](https://github.com/Greg-Schererr)
 - Email: gregori3schererr@gmail.com
 
 ## License
